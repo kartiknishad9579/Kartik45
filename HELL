@@ -1,8 +1,9 @@
 #!/bin/bash
 
+set -e
 
 _hell_zip () {
-    if [[ $GIT_REPO ]]
+    if [[ -n "$GIT_REPO" ]]
     then
         echo "https://github.com/${GIT_REPO}/archive/master.zip"
     else
@@ -11,24 +12,35 @@ _hell_zip () {
 }
 
 _library () {
-    if [[ $BOT_LIBRARY == "pyrogram" ]]
+    if [[ "$BOT_LIBRARY" == "pyrogram" ]]
     then 
+        echo "••• STARTING WITH PYROGRAM •••"
         python3 -m PyrogramHell
     else
+        echo "••• STARTING WITH TELETHON •••"
         python3 -m TelethonHell
     fi
 }
 
 _starter () {
+    echo "••• CHECKING DEPENDENCIES •••"
+    command -v wget >/dev/null 2>&1 || { echo "wget not found. Add to NIXPACKS_PKGS"; exit 1; }
+    command -v unzip >/dev/null 2>&1 || { echo "unzip not found. Add to NIXPACKS_PKGS"; exit 1; }
+    
     local hellpath
     hellpath="Plugins.zip"
-    echo "••• DOWNLOADING STRANGERBOTZ •••"
+    echo "••• DOWNLOADING PLUGINS FROM $(_hell_zip) •••"
     wget -q $(_hell_zip) -O "$hellpath"
-    HELLPATH=$(zipinfo -1 "$hellpath" | grep -v "/.");
+    
+    echo "••• EXTRACTING PLUGINS •••"
+    HELLPATH=$(unzip -Z1 "$hellpath" | head -1 | cut -d'/' -f1)
     unzip -qq "$hellpath"
     rm -rf "$hellpath"
-    cd $HELLPATH
+    
+    cd "$HELLPATH"
+    echo "••• UPDATING REQUIREMENTS •••"
     python3 ../updater.py ../requirements.txt requirements.txt
+    
     echo "••• STARTING STRANGERBOTZ BABY •••"
     _library
 }
